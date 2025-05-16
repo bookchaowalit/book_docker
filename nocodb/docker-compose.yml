@@ -1,0 +1,20 @@
+services:
+  noco:
+    image: nocodb/nocodb:latest
+    container_name: noco
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nocodb:/usr/app/data/
+    env_file:
+      - ../.env
+    restart: unless-stopped
+    networks:
+      - shared-networks
+
+networks:
+  shared-networks:
+
+volumes:
+  nocodb:
+    external: true
