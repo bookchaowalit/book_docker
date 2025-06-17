@@ -6,8 +6,9 @@ services:
       - "3000:8080"
     restart: always
     volumes:
-      - open-webui:/app/backend/data
+      - open-web-ui_open-webui:/app/backend/data
     env_file:
-      - ../.env
+      - .env
 volumes:
-  open-webui:
+  open-web-ui_open-webui:
+    external: true

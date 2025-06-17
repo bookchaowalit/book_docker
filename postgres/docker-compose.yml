@@ -1,20 +1,21 @@
 services:
-  db:
+  postgres:
     image: postgres
-    container_name: local_postgres
+    container_name: postgres_container
     restart: on-failure
     env_file:
-      - ../.env
+      - .env
     ports:
       - "5432:5432"
     volumes:
       - local_pgdata:/var/lib/postgresql/data
     networks:
-      - shared-networks
+      - shared-net
 
 volumes:
   local_pgdata:
 
+
 networks:
-  shared-networks:
+  shared-net:
     external: true

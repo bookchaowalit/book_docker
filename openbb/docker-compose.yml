@@ -1,0 +1,14 @@
+services:
+  openbb-platform:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: openbb-platform:latest
+    ports:
+      - "6900:6900"
+    volumes:
+      - ~/.openbb_platform:/root/.openbb_platform
+    stdin_open: true # equivalent to -it
+    tty: true # equivalent to -it
+    restart: unless-stopped
+    entrypoint: [ "openbb-api", "--host", "0.0.0.0", "--login" ]
