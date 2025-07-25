@@ -9,7 +9,9 @@ services:
     environment:
       MINIO_ROOT_USER: book # Replace with your desired username
       MINIO_ROOT_PASSWORD: password123 # Replace with your desired password
-    command: server --console-address ":9001" /data
+    command: server /data --console-address ":9001"
+    extra_hosts:
+      - "host.docker.internal:172.17.0.1"
     networks:
       - shared-net
 volumes:

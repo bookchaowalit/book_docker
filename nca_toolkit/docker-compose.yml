@@ -26,16 +26,18 @@ services:
       - .env
     ports:
       - "5699:8080"
-    labels:
-      - traefik.enable=true
-      - "traefik.http.routers.ncat.rule=Host(`APP_DOMAIN`)"
-      - traefik.http.routers.ncat.tls=true # optional; can remove if no TLS
-      - traefik.http.routers.ncat.entrypoints=websecure
+      # labels:
+      # - traefik.enable=true
+      # - "traefik.http.routers.ncat.rule=Host(`APP_DOMAIN`)"
+      # - traefik.http.routers.ncat.tls=true # optional; can remove if no TLS
+      # - traefik.http.routers.ncat.entrypoints=websecure
       # Remove this line:
       # - traefik.http.routers.ncat.tls.certresolver=mytlschallenge
     volumes:
       - storage:/var/www/html/storage/app
       - logs:/var/www/html/storage/logs
+    extra_hosts:
+      - "host.docker.internal:172.17.0.1"
     restart: unless-stopped
     networks:
       - shared-net

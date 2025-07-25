@@ -49,6 +49,8 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
       - ./local-files:/files
+    extra_hosts:
+      - "host.docker.internal:172.17.0.1"
     networks:
       - shared-net
 
