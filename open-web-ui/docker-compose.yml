@@ -10,4 +10,8 @@ services:
     env_file:
       - .env
 volumes:
+<<<<<<< HEAD
   open-web-ui:
+=======
+  open-web-ui_open-webui:
+>>>>>>> 64ceb80 (Remove external specification for open-web-ui volume in Docker Compose)
