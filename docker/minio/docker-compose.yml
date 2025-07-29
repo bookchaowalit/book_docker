@@ -1,0 +1,35 @@
+services:
+  minio:
+    image: minio/minio
+    # Remove direct port mapping - access through Traefik
+    # ports:
+    #   - "9000:9000"
+    #   - "9001:9001"
+    labels:
+      - "traefik.enable=true"
+      # MinIO API
+      - "traefik.http.routers.minio-api.rule=Host(`minio.localhost`)"
+      - "traefik.http.routers.minio-api.entrypoints=web"
+      - "traefik.http.routers.minio-api.service=minio-api"
+      - "traefik.http.services.minio-api.loadbalancer.server.port=9000"
+      # MinIO Console
+      - "traefik.http.routers.minio-console.rule=Host(`minio-console.localhost`)"
+      - "traefik.http.routers.minio-console.entrypoints=web"
+      - "traefik.http.routers.minio-console.service=minio-console"
+      - "traefik.http.services.minio-console.loadbalancer.server.port=9001"
+    volumes:
+      - minio_storage:/data
+    environment:
+      MINIO_ROOT_USER: book # Replace with your desired username
+      MINIO_ROOT_PASSWORD: password123 # Replace with your desired password
+    command: server /data --console-address ":9001"
+    extra_hosts:
+      - "host.docker.internal:172.17.0.1"
+    networks:
+      - shared-networks
+volumes:
+  minio_storage: {}
+
+networks:
+  shared-networks:
+    external: true

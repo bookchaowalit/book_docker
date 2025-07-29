@@ -1,0 +1,27 @@
+services:
+  noco:
+    image: nocodb/nocodb:latest
+    container_name: noco
+    # Remove direct port mapping - access through Traefik
+    # ports:
+    #   - "8080:8080"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nocodb.rule=Host(`nocodb.localhost`)"
+      - "traefik.http.routers.nocodb.entrypoints=web"
+      - "traefik.http.services.nocodb.loadbalancer.server.port=8080"
+    volumes:
+      - ./nocodb:/usr/app/data/
+    env_file:
+      - ../.env
+    restart: unless-stopped
+    networks:
+      - shared-networks
+
+networks:
+  shared-networks:
+    external: true
+
+volumes:
+  nocodb:
+    external: true

@@ -1,0 +1,28 @@
+# Compose file for NVIDIA GPU
+
+services:
+  comfyui:
+    init: true
+    container_name: comfyui-nvidia
+    image: "yanwk/comfyui-boot:cu121"
+    # Remove direct port mapping - access through Traefik
+    # ports:
+    #   - "8188:8188"
+    volumes:
+      - "./storage:/root"
+    environment:
+      - CLI_ARGS=--use-pytorch-cross-attention --cpu --listen 0.0.0.0
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    networks:
+      - shared-networks
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.comfyui.rule=Host(`comfyui.localhost`)"
+      - "traefik.http.routers.comfyui.entrypoints=web"
+      - "traefik.http.services.comfyui.loadbalancer.server.port=8188"
+    restart: unless-stopped
+
+networks:
+  shared-networks:
+    external: true

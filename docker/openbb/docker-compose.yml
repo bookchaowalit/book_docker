@@ -1,0 +1,26 @@
+services:
+  openbb-platform:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: openbb-platform:latest
+    # Remove direct port mapping - access through Traefik
+    # ports:
+    #   - "6900:6900"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.openbb.rule=Host(`openbb.localhost`)"
+      - "traefik.http.routers.openbb.entrypoints=web"
+      - "traefik.http.services.openbb.loadbalancer.server.port=6900"
+    volumes:
+      - ~/.openbb_platform:/root/.openbb_platform
+    stdin_open: true # equivalent to -it
+    tty: true # equivalent to -it
+    restart: unless-stopped
+    networks:
+      - shared-networks
+    entrypoint: [ "openbb-api", "--host", "0.0.0.0", "--login" ]
+
+networks:
+  shared-networks:
+    external: true

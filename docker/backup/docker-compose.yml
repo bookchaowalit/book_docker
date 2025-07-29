@@ -1,0 +1,11 @@
+services:
+  backup:
+    image: alpine
+    command: sh -c "cd /volume && tar czf /backup/open-webui-backup.tar.gz ."
+    volumes:
+      - open-webui:/volume:ro
+      - ./backup-data:/backup
+    restart: "no"
+
+volumes:
+  open-webui:

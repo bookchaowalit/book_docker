@@ -1,0 +1,27 @@
+services:
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: phpmyadmin
+    volumes:
+      - ./phpmyadmin:/etc/phpmyadmin
+    env_file:
+      - ../.env
+    restart: always
+    # Remove direct port mapping - access through Traefik
+    # ports:
+    #   - 8081:80
+    networks:
+      - shared-networks
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.phpmyadmin.rule=Host(`phpmyadmin.localhost`)"
+      - "traefik.http.routers.phpmyadmin.entrypoints=web"
+      - "traefik.http.services.phpmyadmin.loadbalancer.server.port=80"
+
+volumes:
+  phpmyadmin:
+
+
+networks:
+  shared-networks:
+    external: true

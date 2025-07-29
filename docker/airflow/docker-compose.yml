@@ -1,0 +1,155 @@
+services:
+  postgres-airflow:
+    image: postgres:13
+    container_name: airflow_postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow-postgres-data:/var/lib/postgresql/data
+    networks:
+      - shared-networks
+    restart: always
+
+  redis-airflow:
+    image: redis:7-alpine
+    container_name: airflow_redis
+    networks:
+      - shared-networks
+    restart: always
+
+  airflow-webserver:
+    image: apache/airflow:2.10.2-python3.11
+    container_name: airflow_webserver
+    command: webserver
+    entrypoint: [ '/opt/airflow/script/entrypoint.sh' ]
+    depends_on:
+      - postgres-airflow
+      - redis-airflow
+    environment:
+      - LOAD_EX=n
+      - EXECUTOR=CeleryExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres-airflow:5432/airflow
+      - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://airflow:airflow@postgres-airflow:5432/airflow
+      - AIRFLOW__CELERY__BROKER_URL=redis://redis-airflow:6379/0
+      - AIRFLOW__CORE__FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
+      - AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK=true
+      - _AIRFLOW_DB_MIGRATE=true
+      - _AIRFLOW_WWW_USER_CREATE=true
+      - _AIRFLOW_WWW_USER_USERNAME=admin
+      - _AIRFLOW_WWW_USER_PASSWORD=admin
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./script/entrypoint.sh:/opt/airflow/script/entrypoint.sh
+      - /var/run/docker.sock:/var/run/docker.sock # Access to Docker daemon
+      - /home/bookchaowalit/book/book_docker/docker:/opt/airflow/book_docker # Access to backup scripts
+    # Remove direct port mapping - access through Traefik
+    # ports:
+    #   - "8080:8080"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.airflow.rule=Host(`airflow.localhost`)"
+      - "traefik.http.routers.airflow.entrypoints=web"
+      - "traefik.http.services.airflow.loadbalancer.server.port=8080"
+    networks:
+      - shared-networks
+    restart: always
+    user: "0:0" # Run as root to access Docker socket
+
+  airflow-scheduler:
+    image: apache/airflow:2.10.2-python3.11
+    container_name: airflow_scheduler
+    command: scheduler
+    entrypoint: [ '/opt/airflow/script/entrypoint.sh' ]
+    depends_on:
+      - postgres-airflow
+      - redis-airflow
+    environment:
+      - LOAD_EX=n
+      - EXECUTOR=CeleryExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres-airflow:5432/airflow
+      - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://airflow:airflow@postgres-airflow:5432/airflow
+      - AIRFLOW__CELERY__BROKER_URL=redis://redis-airflow:6379/0
+      - AIRFLOW__CORE__FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK=true
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./script/entrypoint.sh:/opt/airflow/script/entrypoint.sh
+      - /var/run/docker.sock:/var/run/docker.sock # Access to Docker daemon
+      - /home/bookchaowalit/book/book_docker/docker:/opt/airflow/book_docker # Access to backup scripts
+    networks:
+      - shared-networks
+    restart: always
+    user: "0:0" # Run as root to access Docker socket
+
+  airflow-worker:
+    image: apache/airflow:2.10.2-python3.11
+    container_name: airflow_worker
+    command: celery worker
+    entrypoint: [ '/opt/airflow/script/entrypoint.sh' ]
+    depends_on:
+      - postgres-airflow
+      - redis-airflow
+    environment:
+      - EXECUTOR=CeleryExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres-airflow:5432/airflow
+      - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://airflow:airflow@postgres-airflow:5432/airflow
+      - AIRFLOW__CELERY__BROKER_URL=redis://redis-airflow:6379/0
+      - AIRFLOW__CORE__FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./script/entrypoint.sh:/opt/airflow/script/entrypoint.sh
+      - /var/run/docker.sock:/var/run/docker.sock # Access to Docker daemon
+      - /home/bookchaowalit/book/book_docker/docker:/opt/airflow/book_docker # Access to backup scripts
+    networks:
+      - shared-networks
+    restart: always
+    user: "0:0" # Run as root to access Docker socket
+
+  airflow-flower:
+    image: apache/airflow:2.10.2-python3.11
+    container_name: airflow_flower
+    command: celery flower
+    entrypoint: [ '/opt/airflow/script/entrypoint.sh' ]
+    depends_on:
+      - redis-airflow
+    environment:
+      - EXECUTOR=CeleryExecutor
+      - AIRFLOW__CELERY__BROKER_URL=redis://redis-airflow:6379/0
+      - AIRFLOW__CORE__FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+    volumes:
+      - ./logs:/opt/airflow/logs
+      - ./script/entrypoint.sh:/opt/airflow/script/entrypoint.sh
+    # Remove direct port mapping - access through Traefik
+    # ports:
+    #   - "5555:5555"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.flower.rule=Host(`flower.localhost`)"
+      - "traefik.http.routers.flower.entrypoints=web"
+      - "traefik.http.services.flower.loadbalancer.server.port=5555"
+    networks:
+      - shared-networks
+    restart: always
+
+volumes:
+  airflow-postgres-data:
+
+
+networks:
+  shared-networks:
+    external: true

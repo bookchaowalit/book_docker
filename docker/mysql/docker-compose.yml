@@ -1,0 +1,21 @@
+services:
+  mysql:
+    image: mysql
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    env_file:
+      - ../.env
+    restart: always
+    networks:
+      - shared-networks
+
+volumes:
+  mysql_data:
+
+
+networks:
+  shared-networks:
+    external: true

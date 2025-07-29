@@ -1,0 +1,24 @@
+services:
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    # Remove direct port mapping - access through Traefik
+    # ports:
+    #   - 3090:3000
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana
+    volumes:
+      - ./grafana:/etc/grafana/provisioning/datasources
+    networks:
+      - shared-networks
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.localhost`)"
+      - "traefik.http.routers.grafana.entrypoints=web"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+networks:
+  shared-networks:
+    external: true

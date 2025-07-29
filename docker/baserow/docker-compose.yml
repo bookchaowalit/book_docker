@@ -1,0 +1,27 @@
+services:
+  baserow:
+    container_name: baserow
+    image: baserow/baserow:1.33.4
+    environment:
+      BASEROW_PUBLIC_URL: 'http://baserow.localhost'
+    # Remove direct port mapping - access through Traefik
+    # ports:
+    #   - "92:80"
+    #   - "472:443"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.baserow.rule=Host(`baserow.localhost`)"
+      - "traefik.http.routers.baserow.entrypoints=web"
+      - "traefik.http.services.baserow.loadbalancer.server.port=80"
+    volumes:
+      - baserow_data:/baserow/data
+    networks:
+      - shared-networks
+
+volumes:
+  baserow_data:
+
+
+networks:
+  shared-networks:
+    external: true
