@@ -1,0 +1,55 @@
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:16.7.0-ce.0
+    restart: unless-stopped
+    hostname: gitlab.localhost
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab.localhost'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
+        gitlab_rails['initial_root_password'] = '${GITLAB_ROOT_PASSWORD:-gitlab123}'
+        gitlab_rails['time_zone'] = 'UTC'
+        # Disable some services for resource optimization
+        prometheus_monitoring['enable'] = false
+        alertmanager['enable'] = false
+        grafana['enable'] = false
+        # Configure registry
+        registry_external_url 'http://registry.localhost'
+        gitlab_rails['registry_enabled'] = true
+        # Configure pages
+        pages_external_url 'http://pages.localhost'
+        gitlab_pages['enable'] = true
+    ports:
+      - "2222:22"
+    volumes:
+      - gitlab_config:/etc/gitlab
+      - gitlab_logs:/var/log/gitlab
+      - gitlab_data:/var/opt/gitlab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gitlab.rule=Host(`gitlab.localhost`)"
+      - "traefik.http.routers.gitlab.entrypoints=web"
+      - "traefik.http.services.gitlab.loadbalancer.server.port=80"
+      # Registry
+      - "traefik.http.routers.registry.rule=Host(`registry.localhost`)"
+      - "traefik.http.routers.registry.entrypoints=web"
+      - "traefik.http.services.registry.loadbalancer.server.port=5000"
+    networks:
+      - shared-networks
+    shm_size: '256m'
+    healthcheck:
+      test: [ "CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--max-time", "10" ]
+      interval: 60s
+      timeout: 30s
+      retries: 5
+      start_period: 200s
+
+volumes:
+  gitlab_config:
+  gitlab_logs:
+  gitlab_data:
+
+
+networks:
+  shared-networks:
+    external: true

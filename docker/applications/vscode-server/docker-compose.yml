@@ -1,0 +1,32 @@
+services:
+  vscode-server:
+    image: codercom/code-server:latest
+    restart: unless-stopped
+    environment:
+      - PASSWORD=${VSCODE_PASSWORD:-vscode123}
+      - SUDO_PASSWORD=${SUDO_PASSWORD:-sudo123}
+    volumes:
+      - vscode_data:/home/coder
+      - vscode_projects:/home/coder/projects
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vscode.rule=Host(`vscode.localhost`)"
+      - "traefik.http.routers.vscode.entrypoints=web"
+      - "traefik.http.services.vscode.loadbalancer.server.port=8080"
+    networks:
+      - shared-networks
+    user: "1000:1000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  vscode_data:
+  vscode_projects:
+
+networks:
+  shared-networks:
+    external: true

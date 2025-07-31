@@ -1,0 +1,41 @@
+services:
+  nextcloud:
+    image: nextcloud:28
+    restart: unless-stopped
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=${NEXTCLOUD_DB:-nextcloud}
+      - POSTGRES_USER=${NEXTCLOUD_DB_USER:-nextcloud}
+      - POSTGRES_PASSWORD=${NEXTCLOUD_DB_PASSWORD:-nextcloud123}
+      - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-admin}
+      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD:-admin123}
+      - NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS:-nextcloud.localhost}
+    volumes:
+      - nextcloud_data:/var/www/html
+      - nextcloud_apps:/var/www/html/custom_apps
+      - nextcloud_config:/var/www/html/config
+      - nextcloud_theme:/var/www/html/themes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nextcloud.rule=Host(`nextcloud.localhost`)"
+      - "traefik.http.routers.nextcloud.entrypoints=web"
+      - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
+    networks:
+      - shared-networks
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/status.php"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  nextcloud_data:
+  nextcloud_apps:
+  nextcloud_config:
+  nextcloud_theme:
+
+networks:
+  shared-networks:
+    external: true

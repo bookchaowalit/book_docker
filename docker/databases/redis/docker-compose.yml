@@ -1,0 +1,29 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass "${REDIS_PASSWORD:-redis123}"
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis123}
+    labels:
+      - "traefik.enable=false"
+    networks:
+      - shared-networks
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redis_data:
+
+
+networks:
+  shared-networks:
+    external: true

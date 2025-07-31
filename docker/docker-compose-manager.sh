@@ -19,42 +19,78 @@ SHARED_NET="shared-net"
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$BASE_DIR/services.conf"
 
-# Services configuration - add new services here
+# Services configuration - organized by categories
 declare -A SERVICES=(
-    ["traefik"]="traefik"
-    ["postgres"]="postgres"
-    ["mysql"]="mysql"
-    ["mariadb"]="mariadb"
-    ["redis"]="databases/redis"  # If you had a redis service
-    ["elasticsearch"]="elasticsearch-logstash-kibana"
-    ["prometheus"]="prometheus"
-    ["grafana"]="grafana"
-    ["minio"]="minio"
-    ["baserow"]="baserow"
-    ["nocodb"]="nocodb"
-    ["phpmyadmin"]="phpmyadmin"
-    ["comfyui"]="comfyui"
-    ["open-webui"]="open-web-ui"
-    ["litellm"]="litellm"
-    ["n8n"]="n8n"
-    ["twenty"]="twenty"
-    ["wordpress"]="wordpress"
-    ["flaresolverr"]="flaresolverr"
-    ["nca-toolkit"]="nca_toolkit"
-    ["openbb"]="openbb"
-    ["mixpost"]="mixpost"
-    ["portainer"]="portainer"
-    ["backup"]="backup"
+    # Infrastructure services
+    ["traefik"]="infrastructure/traefik"
+    ["portainer"]="infrastructure/portainer"
+    ["airflow"]="infrastructure/airflow"
+    ["vault"]="infrastructure/vault"
+    ["consul"]="infrastructure/consul"
+    ["nginx"]="infrastructure/nginx"
+    ["gitlab"]="infrastructure/gitlab"
+    ["gitlab-runner"]="infrastructure/gitlab-runner"
+    ["jenkins"]="infrastructure/jenkins"
+    ["rabbitmq"]="infrastructure/rabbitmq"
+    ["kafka"]="infrastructure/kafka"
+
+    # Database services
+    ["postgres"]="databases/postgres"
+    ["mysql"]="databases/mysql"
+    ["mariadb"]="databases/mariadb"
+    ["redis"]="databases/redis"
+    ["mongodb"]="databases/mongodb"
+    ["influxdb"]="databases/influxdb"
+    ["neo4j"]="databases/neo4j"
+    ["couchdb"]="databases/couchdb"
+    ["sqlite"]="databases/sqlite"
+    ["cassandra"]="databases/cassandra"
+
+    # Monitoring services
+    ["elasticsearch"]="monitoring/elasticsearch-logstash-kibana"
+    ["prometheus"]="monitoring/prometheus"
+    ["grafana"]="monitoring/grafana"
+
+    # Storage services
+    ["minio"]="storage/minio"
+
+    # Application services
+    ["baserow"]="applications/baserow"
+    ["nocodb"]="applications/nocodb"
+    ["comfyui"]="applications/comfyui"
+    ["open-webui"]="applications/open-web-ui"
+    ["litellm"]="applications/litellm"
+    ["n8n"]="applications/n8n"
+    ["twenty"]="applications/twenty"
+    ["wordpress"]="applications/wordpress"
+    ["nca-toolkit"]="applications/nca_toolkit"
+    ["openbb"]="applications/openbb"
+    ["mixpost"]="applications/mixpost"
+    ["nextcloud"]="applications/nextcloud"
+    ["rocketchat"]="applications/rocketchat"
+    ["metabase"]="applications/metabase"
+    ["code-server"]="applications/code-server"
+    ["vikunja"]="applications/vikunja"
+    ["bookstack"]="applications/bookstack"
+    ["ghost"]="applications/ghost"
+    ["jupyterhub"]="applications/jupyterhub"
+    ["plausible"]="applications/plausible"
+    ["pocketbase"]="applications/pocketbase"
+
+    # Utility services
+    ["backup"]="utilities/backup"
+    ["phpmyadmin"]="utilities/phpmyadmin"
+    ["flaresolverr"]="utilities/flaresolverr"
 )
 
 # Service categories for organized deployment
 declare -A CATEGORIES=(
-    ["infrastructure"]="traefik portainer"
-    ["databases"]="postgres mysql mariadb"
+    ["infrastructure"]="traefik portainer airflow vault consul nginx gitlab gitlab-runner jenkins rabbitmq kafka"
+    ["databases"]="postgres mysql mariadb redis mongodb influxdb neo4j couchdb sqlite cassandra"
     ["monitoring"]="elasticsearch prometheus grafana"
     ["storage"]="minio"
-    ["applications"]="baserow nocodb phpmyadmin comfyui open-webui litellm n8n twenty wordpress flaresolverr nca-toolkit openbb mixpost"
-    ["utilities"]="backup"
+    ["applications"]="baserow nocodb comfyui open-webui litellm n8n twenty wordpress nca-toolkit openbb mixpost nextcloud rocketchat metabase code-server vikunja bookstack ghost jupyterhub plausible pocketbase"
+    ["utilities"]="backup phpmyadmin flaresolverr"
 )
 
 # Function to print usage
@@ -195,19 +231,19 @@ run_compose_command() {
 
     case "$command" in
         "up")
-            $COMPOSE_CMD up -d
+            $COMPOSE_CMD up -d 2>/dev/null
             ;;
         "down")
-            $COMPOSE_CMD down
+            $COMPOSE_CMD down 2>/dev/null
             ;;
         "restart")
-            $COMPOSE_CMD restart
+            $COMPOSE_CMD restart 2>/dev/null
             ;;
         "pull")
-            $COMPOSE_CMD pull
+            $COMPOSE_CMD pull 2>/dev/null
             ;;
         "build")
-            $COMPOSE_CMD build
+            $COMPOSE_CMD build 2>/dev/null
             ;;
         "logs")
             $COMPOSE_CMD logs -f --tail=100
@@ -216,7 +252,7 @@ run_compose_command() {
             $COMPOSE_CMD ps
             ;;
         *)
-            $COMPOSE_CMD "$command"
+            $COMPOSE_CMD "$command" 2>/dev/null
             ;;
     esac
 
@@ -226,7 +262,7 @@ run_compose_command() {
     if [[ $exit_code -eq 0 ]]; then
         echo -e "${GREEN}✓ $service $command completed${NC}"
     else
-        echo -e "${RED}✗ $service $command failed${NC}"
+        echo -e "${RED}✗ $service $command failed (skipping)${NC}"
     fi
 
     return $exit_code
@@ -358,13 +394,61 @@ main() {
                 # Start all services in order
                 for category in infrastructure databases monitoring storage applications utilities; do
                     for service in ${CATEGORIES[$category]}; do
-                        run_compose_command "$service" "up"
+                        run_compose_command "$service" "up" || true  # Continue on error
                     done
                 done
             else
                 for service in "$@"; do
-                    run_compose_command "$service" "up"
+                    run_compose_command "$service" "up" || true  # Continue on error
                 done
+            fi
+            ;;
+        "up-resilient")
+            create_shared_network
+            echo -e "${BLUE}🛡️  Starting services in resilient mode (skipping errors)...${NC}"
+            local failed_services=()
+            local successful_services=()
+
+            if [[ $# -eq 0 ]]; then
+                # Start all services in order
+                for category in infrastructure databases monitoring storage applications utilities; do
+                    echo -e "${YELLOW}📦 Starting $category services...${NC}"
+                    for service in ${CATEGORIES[$category]}; do
+                        if run_compose_command "$service" "up"; then
+                            successful_services+=("$service")
+                        else
+                            failed_services+=("$service")
+                        fi
+                    done
+                done
+            else
+                for service in "$@"; do
+                    if run_compose_command "$service" "up"; then
+                        successful_services+=("$service")
+                    else
+                        failed_services+=("$service")
+                    fi
+                done
+            fi
+
+            # Summary report
+            echo ""
+            echo -e "${GREEN}✅ Successfully started services:${NC}"
+            for service in "${successful_services[@]}"; do
+                echo -e "  ✓ $service"
+            done
+
+            if [[ ${#failed_services[@]} -gt 0 ]]; then
+                echo ""
+                echo -e "${RED}❌ Failed to start services:${NC}"
+                for service in "${failed_services[@]}"; do
+                    echo -e "  ✗ $service"
+                done
+                echo ""
+                echo -e "${YELLOW}💡 Common issues:${NC}"
+                echo -e "  • Port conflicts (check with: docker ps)"
+                echo -e "  • Missing environment files"
+                echo -e "  • Service dependencies not ready"
             fi
             ;;
         "down")

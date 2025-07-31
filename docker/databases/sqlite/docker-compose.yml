@@ -1,0 +1,25 @@
+services:
+  sqlite-web:
+    image: coleifer/sqlite-web
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - sqlite_data:/data
+      - ./databases:/databases
+    command: sqlite_web -H 0.0.0.0 -x /databases/app.db
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sqlite.rule=Host(`sqlite.localhost`)"
+      - "traefik.http.routers.sqlite.entrypoints=web"
+      - "traefik.http.services.sqlite.loadbalancer.server.port=8080"
+    networks:
+      - shared-networks
+
+volumes:
+  sqlite_data:
+
+
+networks:
+  shared-networks:
+    external: true

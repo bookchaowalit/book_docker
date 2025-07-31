@@ -1,0 +1,35 @@
+services:
+  metabase:
+    image: metabase/metabase:latest
+    restart: unless-stopped
+    environment:
+      - MB_DB_TYPE=postgres
+      - MB_DB_DBNAME=${MB_DB_NAME:-metabase}
+      - MB_DB_PORT=5432
+      - MB_DB_USER=${MB_DB_USER:-metabase}
+      - MB_DB_PASS=${MB_DB_PASS:-metabase123}
+      - MB_DB_HOST=postgres
+      - JAVA_TOOL_OPTIONS=-Xmx2g
+    volumes:
+      - metabase_data:/metabase-data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.metabase.rule=Host(`metabase.localhost`)"
+      - "traefik.http.routers.metabase.entrypoints=web"
+      - "traefik.http.services.metabase.loadbalancer.server.port=3000"
+    networks:
+      - shared-networks
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  metabase_data:
+
+networks:
+  shared-networks:
+    external: true

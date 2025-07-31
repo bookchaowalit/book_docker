@@ -1,0 +1,33 @@
+services:
+  rocketchat:
+    image: rocketchat/rocket.chat:latest
+    restart: unless-stopped
+    environment:
+      - MONGO_URL=mongodb://mongodb:27017/rocketchat?replicaSet=rs0
+      - MONGO_OPLOG_URL=mongodb://mongodb:27017/local?replicaSet=rs0
+      - ROOT_URL=http://rocketchat.localhost
+      - PORT=3000
+      - DEPLOY_METHOD=docker
+    volumes:
+      - rocketchat_uploads:/app/uploads
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rocketchat.rule=Host(`rocketchat.localhost`)"
+      - "traefik.http.routers.rocketchat.entrypoints=web"
+      - "traefik.http.services.rocketchat.loadbalancer.server.port=3000"
+    networks:
+      - shared-networks
+    depends_on:
+      - mongodb
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  rocketchat_uploads:
+
+networks:
+  shared-networks:
+    external: true

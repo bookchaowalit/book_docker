@@ -15,8 +15,8 @@ services:
       - ./config:/vault/config
     command: vault server -dev -dev-root-token-id="myroot" -dev-listen-address="0.0.0.0:8200"
     # Remove direct port mapping - access through Traefik
-    # ports:
-    #   - "8200:8200"
+    ports:
+      - "8200:8200"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.vault.rule=Host(`vault.localhost`)"

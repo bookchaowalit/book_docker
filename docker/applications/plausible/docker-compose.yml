@@ -1,0 +1,51 @@
+services:
+  plausible:
+    image: plausible/analytics:latest
+    restart: unless-stopped
+    command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
+    environment:
+      - BASE_URL=http://plausible.localhost
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE:-your-secret-key-base-here}
+      - DATABASE_URL=postgres://plausible:plausible123@postgres:5432/plausible
+      - CLICKHOUSE_DATABASE_URL=http://clickhouse:8123/plausible
+    volumes:
+      - plausible_data:/app/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.plausible.rule=Host(`plausible.localhost`)"
+      - "traefik.http.routers.plausible.entrypoints=web"
+      - "traefik.http.services.plausible.loadbalancer.server.port=8000"
+    networks:
+      - shared-networks
+    depends_on:
+      - postgres
+      - clickhouse
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    restart: unless-stopped
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+      - ./clickhouse-config.xml:/etc/clickhouse-server/config.d/logging.xml:ro
+      - ./clickhouse-user-config.xml:/etc/clickhouse-server/users.d/logging.xml:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    networks:
+      - shared-networks
+
+volumes:
+  plausible_data:
+  clickhouse_data:
+  clickhouse_logs:
+
+networks:
+  shared-networks:
+    external: true

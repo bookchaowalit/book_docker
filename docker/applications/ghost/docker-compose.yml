@@ -1,0 +1,36 @@
+services:
+  ghost:
+    image: ghost:5
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - url=http://ghost.localhost
+      - database__client=mysql
+      - database__connection__host=mysql
+      - database__connection__user=${GHOST_DB_USER:-ghost}
+      - database__connection__password=${GHOST_DB_PASSWORD:-ghost123}
+      - database__connection__database=${GHOST_DB_NAME:-ghost}
+      - mail__transport=SMTP
+    volumes:
+      - ghost_content:/var/lib/ghost/content
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ghost.rule=Host(`ghost.localhost`)"
+      - "traefik.http.routers.ghost.entrypoints=web"
+      - "traefik.http.services.ghost.loadbalancer.server.port=2368"
+    networks:
+      - shared-networks
+    depends_on:
+      - mysql
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2368/ghost/api/v4/admin/site/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  ghost_content:
+
+networks:
+  shared-networks:
+    external: true

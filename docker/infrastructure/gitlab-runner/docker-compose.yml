@@ -1,0 +1,32 @@
+services:
+  gitlab-runner:
+    image: gitlab/gitlab-runner:alpine
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - gitlab_runner_config:/etc/gitlab-runner
+      - gitlab_runner_home:/home/gitlab-runner
+    environment:
+      - CI_SERVER_URL=http://gitlab.localhost
+      - REGISTRATION_TOKEN=${GITLAB_REGISTRATION_TOKEN:-your_registration_token_here}
+      - RUNNER_NAME=docker-runner
+      - RUNNER_EXECUTOR=docker
+      - DOCKER_IMAGE=alpine:latest
+    networks:
+      - shared-networks
+    depends_on:
+      - gitlab
+    healthcheck:
+      test: [ "CMD", "gitlab-runner", "verify" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  gitlab_runner_config:
+  gitlab_runner_home:
+
+
+networks:
+  shared-networks:
+    external: true
