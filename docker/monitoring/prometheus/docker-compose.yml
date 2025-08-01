@@ -1,7 +1,8 @@
 services:
   prometheus:
+    container_name: prometheus-container
     image: prom/prometheus
-    container_name: prometheus
+    container_name: prometheus-container
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
     # Remove direct port mapping - access through Traefik

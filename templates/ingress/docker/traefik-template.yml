@@ -1,0 +1,85 @@
+# Traefik Proxy Configuration Template
+# Use this template for Docker Compose services with Traefik
+
+version: '3.8'
+
+services:
+  traefik:
+    container_name: traefik-proxy
+    image: traefik:v3.0
+    restart: unless-stopped
+    command:
+      # API and dashboard
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+      
+      # Providers
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+      
+      # Entry points
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.traefik.address=:8080"
+      
+      # SSL/TLS
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=admin@yourdomain.com"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      
+      # Security
+      - "--global.sendanonymoususage=false"
+      - "--log.level=INFO"
+      - "--accesslog=true"
+      
+      # Metrics
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.addEntryPointsLabels=true"
+      - "--metrics.prometheus.addServicesLabels=true"
+      
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./letsencrypt:/letsencrypt"
+      - "./config/dynamic:/etc/traefik/dynamic:ro"
+    
+    networks:
+      - traefik-network
+    
+    labels:
+      # Dashboard
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.yourdomain.com`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      
+      # Middleware for security
+      - "traefik.http.middlewares.auth.basicauth.users=admin:$$2y$$10$$..."
+      - "traefik.http.routers.dashboard.middlewares=auth"
+      
+      # Global redirect to HTTPS
+      - "traefik.http.routers.http-catchall.rule=hostregexp(`{host:.+}`)"
+      - "traefik.http.routers.http-catchall.entrypoints=web"
+      - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+    
+    security_opt:
+      - no-new-privileges:true
+    
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  traefik-network:
+    external: true
+

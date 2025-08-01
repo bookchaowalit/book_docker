@@ -1,5 +1,6 @@
 services:
   nginx:
+    container_name: nginx-container
     image: nginx:alpine
     restart: unless-stopped
     ports:

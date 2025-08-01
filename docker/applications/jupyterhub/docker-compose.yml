@@ -1,22 +1,28 @@
 services:
   jupyterhub:
+    container_name: jupyterhub-container
     image: jupyterhub/jupyterhub:latest
     restart: unless-stopped
     volumes:
       - jupyterhub_data:/srv/jupyterhub
       - /var/run/docker.sock:/var/run/docker.sock
       - ./jupyterhub_config.py:/srv/jupyterhub/jupyterhub_config.py
+
     environment:
       - DOCKER_JUPYTER_CONTAINER=jupyter/datascience-notebook:latest
       - DOCKER_NETWORK_NAME=shared-networks
+
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.jupyterhub.rule=Host(`jupyter.localhost`)"
       - "traefik.http.routers.jupyterhub.entrypoints=web"
       - "traefik.http.services.jupyterhub.loadbalancer.server.port=8000"
+
     networks:
       - shared-networks
+
     healthcheck:
+
       test: [ "CMD", "curl", "-f", "http://localhost:8000/hub/health" ]
       interval: 30s
       timeout: 10s

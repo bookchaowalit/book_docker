@@ -1,7 +1,8 @@
 services:
   phpmyadmin:
+    container_name: phpmyadmin-container
     image: phpmyadmin
-    container_name: phpmyadmin
+    container_name: phpmyadmin-container
     volumes:
       - ./phpmyadmin:/etc/phpmyadmin
     env_file:

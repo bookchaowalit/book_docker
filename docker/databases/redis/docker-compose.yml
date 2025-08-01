@@ -1,24 +1,35 @@
 services:
   redis:
+    container_name: redis-container
     image: redis:7-alpine
-    restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass "${REDIS_PASSWORD:-redis123}"
+    restart: always
+    command: redis-server --requirepass redis123 --appendonly yes --appendfsync everysec
     ports:
       - "6379:6379"
+
     volumes:
       - redis_data:/data
-      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
-    environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis123}
-    labels:
-      - "traefik.enable=false"
+
     networks:
       - shared-networks
+
     healthcheck:
+
       test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
       interval: 10s
-      timeout: 3s
-      retries: 5
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+
+      resources:
+
+        limits:
+
+          memory: 512M
+        reservations:
+
+          memory: 256M
 
 volumes:
   redis_data:

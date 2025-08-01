@@ -1,0 +1,27 @@
+[0;34m🧹 Daily Docker Cleanup - Fri Aug  1 09:36:58 AM +07 2025[0m
+==================================
+[1;33m📊 Docker usage before cleanup:[0m
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          75        36        59.5GB    26.51GB (44%)
+Containers      40        40        1.315GB   0B (0%)
+Local Volumes   43        43        5.704GB   0B (0%)
+Build Cache     87        0         0B        0B
+
+[1;33m1. Removing stopped containers...[0m
+Total reclaimed space: 0B
+
+[1;33m2. Removing dangling images...[0m
+Total reclaimed space: 0B
+
+[1;33m3. Removing unused networks...[0m
+
+[1;33m4. Cleaning build cache...[0m
+
+[1;33m📊 Docker usage after cleanup:[0m
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          75        36        59.5GB    26.51GB (44%)
+Containers      40        40        1.315GB   0B (0%)
+Local Volumes   43        43        5.704GB   0B (0%)
+Build Cache     87        0         0B        0B
+
+[0;32m✅ Daily cleanup completed - Fri Aug  1 09:36:58 AM +07 2025[0m

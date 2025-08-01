@@ -1,0 +1,79 @@
+# Generated from Docker Compose: /home/bookchaowalit/book/book_docker/scripts/migration/test-temp/test-compose.yml
+# Service: test-app
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-app-config
+  namespace: test-namespace
+data:
+  0: "ENV_VAR1=value1"
+  1: "ENV_VAR2=value2"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: test-app-pvc
+  namespace: test-namespace
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: fast-ssd
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-app
+  namespace: test-namespace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-app
+  template:
+    metadata:
+      labels:
+        app: test-app
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: test-app
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+          name: http
+        envFrom:
+        - configMapRef:
+            name: test-app-config
+        volumeMounts:
+        - name: test-app-storage
+          mountPath: /data  # TODO: Adjust mount path as needed
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+      volumes:
+      - name: test-app-storage
+        persistentVolumeClaim:
+          claimName: test-app-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-app
+  namespace: test-namespace
+spec:
+  selector:
+    app: test-app
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  type: ClusterIP
+---

@@ -1,5 +1,6 @@
 services:
   ghost:
+    container_name: ghost-container
     image: ghost:5
     restart: unless-stopped
     environment:
@@ -20,8 +21,6 @@ services:
       - "traefik.http.services.ghost.loadbalancer.server.port=2368"
     networks:
       - shared-networks
-    depends_on:
-      - mysql
     healthcheck:
       test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2368/ghost/api/v4/admin/site/" ]
       interval: 30s

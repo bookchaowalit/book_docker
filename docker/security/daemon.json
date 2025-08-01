@@ -1,0 +1,22 @@
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  },
+  "live-restore": true,
+  "userland-proxy": false,
+  "no-new-privileges": true,
+  "seccomp-profile": "/etc/docker/seccomp/default.json",
+  "apparmor-profile": "docker-default",
+  "selinux-enabled": false,
+  "disable-legacy-registry": true,
+  "experimental": false,
+  "metrics-addr": "127.0.0.1:9323",
+  "tls": true,
+  "tlsverify": true,
+  "storage-driver": "overlay2",
+  "storage-opts": [
+    "overlay2.override_kernel_check=true"
+  ]
+}

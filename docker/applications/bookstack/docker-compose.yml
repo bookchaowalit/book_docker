@@ -1,5 +1,6 @@
 services:
   bookstack:
+    container_name: bookstack-container
     image: lscr.io/linuxserver/bookstack:latest
     restart: unless-stopped
     environment:
@@ -12,18 +13,21 @@ services:
       - DB_PASS=${BOOKSTACK_DB_PASSWORD:-bookstack123}
       - DB_DATABASE=${BOOKSTACK_DB_NAME:-bookstackapp}
       - MAIL_DRIVER=smtp
+
     volumes:
       - bookstack_data:/config
+
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.bookstack.rule=Host(`bookstack.localhost`)"
       - "traefik.http.routers.bookstack.entrypoints=web"
       - "traefik.http.services.bookstack.loadbalancer.server.port=80"
+
     networks:
       - shared-networks
-    depends_on:
-      - mysql
+
     healthcheck:
+
       test: [ "CMD", "curl", "-f", "http://localhost/login" ]
       interval: 30s
       timeout: 10s

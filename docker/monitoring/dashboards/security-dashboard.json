@@ -1,0 +1,221 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Security Monitoring Dashboard",
+    "tags": ["security", "monitoring", "alerts"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Failed Login Attempts",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "increase(auth_failures_total[5m])",
+            "refId": "A",
+            "legendFormat": "Failed Logins"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Attempts"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Suspicious IP Addresses",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "topk(10, increase(http_requests_total{status=\"403\"}[1h]) by (remote_addr))",
+            "refId": "A",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Container Security Events",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "increase(container_security_violations_total[5m])",
+            "refId": "A",
+            "legendFormat": "Security Violations"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "SSL Certificate Expiry",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "(ssl_certificate_expiry_seconds - time()) / 86400",
+            "refId": "A",
+            "legendFormat": "Days until expiry"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "days",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 7
+                },
+                {
+                  "color": "green",
+                  "value": 30
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "Network Anomalies",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(network_anomalies_total[5m])",
+            "refId": "A",
+            "legendFormat": "Anomaly Rate"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 6,
+        "title": "Vulnerability Scan Results",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "vulnerability_scan_critical_count",
+            "refId": "A",
+            "legendFormat": "Critical"
+          },
+          {
+            "expr": "vulnerability_scan_high_count",
+            "refId": "B",
+            "legendFormat": "High"
+          },
+          {
+            "expr": "vulnerability_scan_medium_count",
+            "refId": "C",
+            "legendFormat": "Medium"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 1
+                },
+                {
+                  "color": "red",
+                  "value": 5
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        }
+      },
+      {
+        "id": 7,
+        "title": "API Rate Limiting",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(api_rate_limit_exceeded_total[5m])",
+            "refId": "A",
+            "legendFormat": "Rate Limit Exceeded"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 24
+        }
+      },
+      {
+        "id": 8,
+        "title": "Security Alert Summary",
+        "type": "logs",
+        "targets": [
+          {
+            "expr": "{job=\"security\"} |= \"ALERT\"",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 32
+        }
+      }
+    ],
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "refresh": "1m"
+  }
+}

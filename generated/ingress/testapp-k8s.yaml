@@ -1,0 +1,30 @@
+# Generated Kubernetes Ingress configuration for testapp
+# Generated on Fri Aug  1 02:47:30 PM +07 2025
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: testapp-ingress
+  namespace: production
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  tls:
+  - hosts:
+    - testapp.example.com
+    secretName: testapp-tls
+  rules:
+  - host: testapp.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: testapp
+            port:
+              number: 8080

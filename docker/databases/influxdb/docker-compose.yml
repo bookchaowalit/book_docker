@@ -1,10 +1,13 @@
 services:
   influxdb:
+    container_name: influxdb-container
     image: influxdb:2.7
     restart: unless-stopped
     ports:
       - "8086:8086"
+
     environment:
+
       DOCKER_INFLUXDB_INIT_MODE: setup
       DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_USERNAME:-admin}
       DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_PASSWORD:-admin123}
@@ -14,14 +17,18 @@ services:
     volumes:
       - influxdb_data:/var/lib/influxdb2
       - influxdb_config:/etc/influxdb2
+
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.influxdb.rule=Host(`influxdb.localhost`)"
       - "traefik.http.routers.influxdb.entrypoints=web"
       - "traefik.http.services.influxdb.loadbalancer.server.port=8086"
+
     networks:
       - shared-networks
+
     healthcheck:
+
       test: [ "CMD", "curl", "-f", "http://localhost:8086/ping" ]
       interval: 30s
       timeout: 10s

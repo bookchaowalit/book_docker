@@ -1,0 +1,30 @@
+# Generated Kubernetes Ingress configuration for baserow
+# Generated on Fri Aug  1 01:41:59 PM +07 2025
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: baserow-ingress
+  namespace: book-stack
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  tls:
+  - hosts:
+    - baserow.example.com
+    secretName: baserow-tls
+  rules:
+  - host: baserow.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: baserow
+            port:
+              number: 80

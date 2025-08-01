@@ -2,8 +2,8 @@ version: '3.8'
 
 services:
   portainer:
+    container_name: portainer-container
     image: portainer/portainer-ce:lts
-    container_name: portainer
     restart: always
     # Temporary port mapping for testing
     ports:

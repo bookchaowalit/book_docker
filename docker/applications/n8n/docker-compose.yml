@@ -1,5 +1,6 @@
 services:
   n8n:
+    container_name: n8n-container
     image: docker.n8n.io/n8nio/n8n
     restart: always
     # Remove direct port mapping - access through Traefik
@@ -10,18 +11,23 @@ services:
       - "traefik.http.routers.n8n.rule=Host(`n8n.localhost`)"
       - "traefik.http.routers.n8n.entrypoints=web"
       - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+
     env_file:
       - .env
+
     environment:
       - DOMAIN_NAME=${DOMAIN_NAME}
       - SUBDOMAIN=${SUBDOMAIN}
       - N8N_SECURE_COOKIE=false
       - N8N_HOST=n8n.localhost
+
     volumes:
       - n8n_data:/home/node/.n8n
       - ./local-files:/files
+
     extra_hosts:
       - "host.docker.internal:172.17.0.1"
+
     networks:
       - shared-networks
 

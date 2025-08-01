@@ -1,7 +1,7 @@
 services:
   vault:
+    container_name: vault-container
     image: hashicorp/vault:latest
-    container_name: vault_server
     restart: always
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: myroot

@@ -1,8 +1,10 @@
 services:
   vikunja:
+    container_name: vikunja-container
     image: vikunja/vikunja:latest
     restart: unless-stopped
     environment:
+
       VIKUNJA_DATABASE_HOST: postgres
       VIKUNJA_DATABASE_PASSWORD: ${VIKUNJA_DB_PASSWORD:-vikunja123}
       VIKUNJA_DATABASE_TYPE: postgres
@@ -12,16 +14,18 @@ services:
       VIKUNJA_SERVICE_FRONTENDURL: http://vikunja.localhost
     volumes:
       - vikunja_files:/app/vikunja/files
+
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.vikunja.rule=Host(`vikunja.localhost`)"
       - "traefik.http.routers.vikunja.entrypoints=web"
       - "traefik.http.services.vikunja.loadbalancer.server.port=3456"
+
     networks:
       - shared-networks
-    depends_on:
-      - postgres
+
     healthcheck:
+
       test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3456/health" ]
       interval: 30s
       timeout: 10s

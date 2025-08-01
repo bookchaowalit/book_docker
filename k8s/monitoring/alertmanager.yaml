@@ -1,0 +1,151 @@
+# Kubernetes Alertmanager Configuration
+# Alertmanager deployment for Kubernetes cluster
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+data:
+  alertmanager.yml: |
+    global:
+      smtp_smarthost: 'localhost:587'
+      smtp_from: 'alertmanager@k8s.localhost'
+    
+    templates:
+    - '/etc/alertmanager/templates/*.tmpl'
+    
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 1h
+      receiver: web.hook
+      routes:
+      - match:
+          severity: critical
+        receiver: critical-alerts
+        group_wait: 5s
+        repeat_interval: 30m
+      - match:
+          severity: warning
+        receiver: warning-alerts
+        group_wait: 30s
+        repeat_interval: 2h
+      - match_re:
+          alertname: ^(KubePodCrashLooping|KubeDeploymentReplicasMismatch)$
+        receiver: kubernetes-alerts
+        group_wait: 5s
+        repeat_interval: 15m
+    
+    inhibit_rules:
+    - source_match:
+        severity: 'critical'
+      target_match:
+        severity: 'warning'
+      equal: ['alertname', 'cluster', 'service']
+    
+    receivers:
+    - name: 'web.hook'
+      webhook_configs:
+      - url: 'http://webhook-service:5001/'
+        send_resolved: true
+    
+    - name: 'critical-alerts'
+      webhook_configs:
+      - url: 'http://webhook-service:5001/critical'
+        send_resolved: true
+    
+    - name: 'warning-alerts'
+      webhook_configs:
+      - url: 'http://webhook-service:5001/warning'
+        send_resolved: true
+    
+    - name: 'kubernetes-alerts'
+      webhook_configs:
+      - url: 'http://webhook-service:5001/kubernetes'
+        send_resolved: true
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager
+  namespace: monitoring
+  labels:
+    app: alertmanager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager
+  template:
+    metadata:
+      labels:
+        app: alertmanager
+    spec:
+      containers:
+      - name: alertmanager
+        image: prom/alertmanager:latest
+        ports:
+        - containerPort: 9093
+          name: http
+        - containerPort: 9094
+          name: cluster
+        args:
+        - '--config.file=/etc/alertmanager/alertmanager.yml'
+        - '--storage.path=/alertmanager'
+        - '--web.external-url=http://alertmanager.k8s.localhost'
+        - '--cluster.listen-address=0.0.0.0:9094'
+        - '--cluster.peer=alertmanager-1.alertmanager:9094'
+        volumeMounts:
+        - name: config
+          mountPath: /etc/alertmanager
+        - name: storage
+          mountPath: /alertmanager
+        resources:
+          requests:
+            memory: 128Mi
+            cpu: 100m
+          limits:
+            memory: 256Mi
+            cpu: 500m
+        livenessProbe:
+          httpGet:
+            path: /-/healthy
+            port: 9093
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: 9093
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: config
+        configMap:
+          name: alertmanager-config
+      - name: storage
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager
+  namespace: monitoring
+  labels:
+    app: alertmanager
+spec:
+  selector:
+    app: alertmanager
+  ports:
+  - port: 9093
+    targetPort: 9093
+    name: http
+  - port: 9094
+    targetPort: 9094
+    name: cluster
+  type: ClusterIP

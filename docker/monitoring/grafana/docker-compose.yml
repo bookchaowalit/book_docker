@@ -1,23 +1,41 @@
 services:
   grafana:
-    image: grafana/grafana
-    container_name: grafana
-    # Remove direct port mapping - access through Traefik
-    # ports:
-    #   - 3090:3000
-    restart: unless-stopped
+    container_name: grafana-container
+    image: grafana/grafana:latest
+    restart: always
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=grafana
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_DOMAIN=grafana.localhost
+      - GF_SERVER_ROOT_URL=http://grafana.localhost
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
     volumes:
-      - ./grafana:/etc/grafana/provisioning/datasources
-    networks:
-      - shared-networks
+      - grafana_data:/var/lib/grafana
+      - grafana_logs:/var/log/grafana
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=Host(`grafana.localhost`)"
       - "traefik.http.routers.grafana.entrypoints=web"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+    networks:
+      - shared-networks
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+volumes:
+  grafana_data:
+  grafana_logs:
+
 
 networks:
   shared-networks:

@@ -1,0 +1,151 @@
+# Centralized Logging Configuration for Docker Monitoring Stack
+# This file defines logging drivers and configurations for all monitored services
+
+version: '3.8'
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "100m" 
+    max-file: "3"
+    labels: "service,environment,version"
+
+x-fluentd-logging: &fluentd-logging
+  driver: "fluentd"
+  options:
+    fluentd-address: "localhost:24224"
+    fluentd-async-connect: "true"
+    tag: "docker.{{.Name}}"
+
+services:
+  # Log aggregation services
+  fluentd:
+    image: fluent/fluentd:v1.14-debian-1
+    container_name: fluentd-container
+    volumes:
+      - ./fluentd/conf:/fluentd/etc
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    environment:
+      - FLUENTD_CONF=fluent.conf
+    networks:
+      - shared-networks
+    logging: *default-logging
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+
+  # Enhanced ELK stack with centralized logging
+  elasticsearch:
+    image: elasticsearch:7.16.1
+    container_name: elasticsearch-logging
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - xpack.security.enabled=false
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+      - ./elasticsearch/config:/usr/share/elasticsearch/config:ro
+    ports:
+      - "9200:9200"
+    networks:
+      - shared-networks
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD-SHELL", "curl --silent --fail localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  logstash:
+    image: logstash:7.16.1
+    container_name: logstash-aggregator
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./logstash/config:/usr/share/logstash/config:ro
+      - /var/log:/var/log:ro
+    ports:
+      - "5044:5044"
+      - "5000:5000/tcp"
+      - "5000:5000/udp"
+      - "9600:9600"
+    environment:
+      - "LS_JAVA_OPTS=-Xms1g -Xmx1g"
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    networks:
+      - shared-networks
+    logging: *default-logging
+    depends_on:
+      - elasticsearch
+    healthcheck:
+      test: ["CMD-SHELL", "curl --silent --fail localhost:9600 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  kibana:
+    image: kibana:7.16.1
+    container_name: kibana-dashboard
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVER_NAME=kibana.localhost
+      - SERVER_HOST=0.0.0.0
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kibana.rule=Host(`kibana.localhost`)"
+      - "traefik.http.routers.kibana.entrypoints=web"
+      - "traefik.http.services.kibana.loadbalancer.server.port=5601"
+    networks:
+      - shared-networks
+    logging: *default-logging
+    depends_on:
+      - elasticsearch
+    healthcheck:
+      test: ["CMD-SHELL", "curl --silent --fail localhost:5601/api/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  # Log shipping for applications
+  filebeat:
+    image: elastic/filebeat:7.16.1
+    container_name: filebeat-shipper
+    user: root
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/log:/var/log:ro
+      - filebeat_data:/usr/share/filebeat/data
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - KIBANA_HOST=http://kibana:5601
+    networks:
+      - shared-networks
+    logging: *default-logging
+    depends_on:
+      - elasticsearch
+      - logstash
+    command: filebeat -e -strict.perms=false
+
+volumes:
+  elasticsearch_data:
+    driver: local
+  filebeat_data:
+    driver: local
+
+networks:
+  shared-networks:
+    external: true

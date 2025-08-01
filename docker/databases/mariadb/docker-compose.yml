@@ -1,19 +1,24 @@
 services:
 
   db:
+    container_name: mariadb-container
     image: mariadb
-    container_name: mariadb
+
     restart: always
     env_file:
       - ../.env
+
     ports:
       - "3307:3307"
+
     volumes:
       - mariadb_data:/var/lib/mysql
+
     networks:
       - shared-networks
 volumes:
   mariadb_data:
+
 
 networks:
   shared-networks:

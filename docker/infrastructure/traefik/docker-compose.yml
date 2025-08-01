@@ -1,12 +1,15 @@
 services:
   traefik:
+    container_name: traefik-container
     image: traefik:v2.11
-    restart: unless-stopped
+    restart: always
     command:
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
+      - "--ping=true"
+      - "--log.level=INFO"
     ports:
       - "80:80"
       - "443:443"
@@ -16,6 +19,12 @@ services:
       - "./letsencrypt:/letsencrypt"
     networks:
       - shared-networks
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
 networks:
   shared-networks:

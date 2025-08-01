@@ -1,0 +1,103 @@
+# Filebeat configuration for Docker container log shipping
+# Collects logs from Docker containers and ships to Logstash/Elasticsearch
+
+filebeat.inputs:
+- type: container
+  paths:
+    - '/var/lib/docker/containers/*/*.log'
+  processors:
+  - add_docker_metadata:
+      host: "unix:///var/run/docker.sock"
+  - decode_json_fields:
+      fields: ["message"]
+      target: ""
+      overwrite_keys: true
+  - add_labels:
+      labels:
+        logtype: container
+
+- type: log
+  enabled: true
+  paths:
+    - /var/log/syslog
+    - /var/log/auth.log
+  fields:
+    logtype: system
+  fields_under_root: true
+
+- type: docker
+  containers.path: "/var/lib/docker/containers"
+  containers.stream: all
+  containers.ids:
+    - "*"
+  processors:
+  - add_docker_metadata: ~
+  - add_labels:
+      labels:
+        logtype: docker
+
+# Multiline patterns for stack traces
+filebeat.inputs:
+- type: container
+  paths:
+    - '/var/lib/docker/containers/*/*.log'
+  multiline.pattern: '^\d{4}-\d{2}-\d{2}'
+  multiline.negate: true
+  multiline.match: after
+  processors:
+  - add_docker_metadata: ~
+
+# Processors to enhance log data
+processors:
+- add_host_metadata:
+    when.not.contains.tags: forwarded
+- add_cloud_metadata: ~
+- add_docker_metadata: ~
+- add_kubernetes_metadata: ~
+
+# Template settings
+setup.template.settings:
+  index.number_of_shards: 1
+  index.codec: best_compression
+
+# Kibana dashboard setup
+setup.dashboards.enabled: true
+setup.kibana:
+  host: "http://kibana:5601"
+
+# Output configuration
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+  indices:
+  - index: "filebeat-docker-%{+yyyy.MM.dd}"
+    when.equals:
+      fields.logtype: "container"
+  - index: "filebeat-system-%{+yyyy.MM.dd}"
+    when.equals:
+      fields.logtype: "system"
+  - index: "filebeat-docker-%{+yyyy.MM.dd}"
+    when.equals:
+      fields.logtype: "docker"
+
+# Alternative output to Logstash (uncomment to use)
+# output.logstash:
+#   hosts: ["logstash:5044"]
+
+# Logging configuration
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /usr/share/filebeat/logs
+  name: filebeat
+  keepfiles: 7
+  permissions: 0644
+
+# Monitoring
+monitoring.enabled: true
+monitoring.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+
+# X-Pack monitoring
+xpack.monitoring.enabled: true
+xpack.monitoring.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]

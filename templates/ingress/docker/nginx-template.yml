@@ -1,0 +1,45 @@
+# Nginx Proxy Configuration Template
+# Use this template for Docker Compose services with Nginx
+
+version: '3.8'
+
+services:
+  nginx-proxy:
+    container_name: nginx-proxy
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./conf.d:/etc/nginx/conf.d:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./logs:/var/log/nginx
+      - nginx_cache:/var/cache/nginx
+    
+    networks:
+      - proxy-network
+    
+    security_opt:
+      - no-new-privileges:true
+    
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx.rule=Host(`nginx.yourdomain.com`)"
+      - "traefik.http.routers.nginx.entrypoints=websecure"
+      - "traefik.http.routers.nginx.tls.certresolver=letsencrypt"
+
+volumes:
+  nginx_cache:
+
+networks:
+  proxy-network:
+    external: true

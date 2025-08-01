@@ -1,5 +1,6 @@
 services:
   backup:
+    container_name: backup-container
     image: alpine
     command: sh -c "cd /volume && tar czf /backup/open-webui-backup.tar.gz ."
     volumes:
@@ -9,3 +10,12 @@ services:
 
 volumes:
   open-webui:
+
+# Added by centralization script
+networks:
+  shared-networks:
+    external: true
+  book-shared-network:
+    external: true
+  shared-net:
+    external: true

@@ -1,16 +1,37 @@
 services:
   mysql:
-    image: mysql
-    container_name: mysql
+    container_name: mysql-container
+    image: mysql:8.0
+    restart: always
+    env_file:
+      - .env
+
     ports:
       - "3306:3306"
+
     volumes:
       - mysql_data:/var/lib/mysql
-    env_file:
-      - ../.env
-    restart: always
+
     networks:
       - shared-networks
+
+    healthcheck:
+
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$MYSQL_ROOT_PASSWORD" ]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+
+      resources:
+
+        limits:
+
+          memory: 1G
+        reservations:
+
+          memory: 512M
 
 volumes:
   mysql_data:

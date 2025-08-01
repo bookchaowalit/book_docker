@@ -1,5 +1,6 @@
 services:
   minio:
+    container_name: minio-container
     image: minio/minio
     # Remove direct port mapping - access through Traefik
     # ports:

@@ -1,0 +1,137 @@
+version: '3.8'
+
+# Centralized Infrastructure Override
+# This file ensures all services use shared infrastructure
+
+networks:
+  shared-networks:
+    external: true
+
+services:
+  # Shared PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-container
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: shared_db
+      POSTGRES_MULTIPLE_DATABASES: baserow,nocodb,n8n,twenty,vikunja,metabase,nextcloud,jupyterhub,plausible
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh:ro
+    networks:
+      - shared-networks
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "traefik.enable=false"
+
+  # Shared MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql123
+      MYSQL_DATABASE: shared_db
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: app_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init-mysql-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+    networks:
+      - shared-networks
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "traefik.enable=false"
+
+  # Shared Redis
+  redis:
+    image: redis:7-alpine
+    container_name: redis-container
+    command: redis-server --requirepass redis123
+    volumes:
+      - redis_data:/data
+    networks:
+      - shared-networks
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "traefik.enable=false"
+
+  # Shared MongoDB
+  mongodb:
+    image: mongo:6
+    container_name: mongodb-container
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: shared_db
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - shared-networks
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "traefik.enable=false"
+
+  # Centralized Traefik
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik-container
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=shared-networks"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--log.level=INFO"
+    ports:
+      - "8080:80"
+      - "8443:443"
+      - "8090:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_data:/data
+    networks:
+      - shared-networks
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.traefik.service=api@internal"
+
+volumes:
+  postgres_data:
+    name: shared_postgres_data
+  mysql_data:
+    name: shared_mysql_data
+  redis_data:
+    name: shared_redis_data
+  mongodb_data:
+    name: shared_mongodb_data
+  traefik_data:
+    name: shared_traefik_data

@@ -1,17 +1,21 @@
 services:
   server:
+    container_name: twenty-container
     image: twentycrm/twenty:${TAG:-latest}
     volumes:
       - server-local-data:/app/packages/twenty-server/.local-storage
     # Remove direct port mapping - access through Traefik
     # ports:
     #   - "3010:3000"
+
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.twenty.rule=Host(`twenty.localhost`)"
       - "traefik.http.routers.twenty.entrypoints=web"
       - "traefik.http.services.twenty.loadbalancer.server.port=3000"
+
     environment:
+
       NODE_PORT: 3000
       PG_DATABASE_URL: postgres://${PG_DATABASE_USER:-postgres}:${PG_DATABASE_PASSWORD:-postgres}@${PG_DATABASE_HOST:-postgres_container}:${PG_DATABASE_PORT:-5432}/${PG_DATABASE_NAME:-twenty}
       SERVER_URL: ${SERVER_URL}
@@ -52,11 +56,14 @@ services:
       - shared-networks
 
   worker:
+
     image: twentycrm/twenty:${TAG:-latest}
     volumes:
       - server-local-data:/app/packages/twenty-server/${STORAGE_LOCAL_PATH:-.local-storage}
+
     command: [ "yarn", "worker:prod" ]
     environment:
+
       PG_DATABASE_URL: postgres://${PG_DATABASE_USER:-postgres}:${PG_DATABASE_PASSWORD:-postgres}@${PG_DATABASE_HOST:-postgres_container}:${PG_DATABASE_PORT:-5432}/${PG_DATABASE_NAME:-twenty}
       SERVER_URL: ${SERVER_URL}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
@@ -93,13 +100,16 @@ services:
       # EMAIL_SMTP_PASSWORD: ${EMAIL_SMTP_PASSWORD:-}
 
     depends_on:
+
       server:
+
         condition: service_started
     restart: always
     networks:
       - shared-networks
 
   redis:
+
     image: redis:latest
     restart: always
     command: [ "--maxmemory-policy", "noeviction" ]

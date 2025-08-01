@@ -69,6 +69,14 @@ declare -A SERVICES=(
     ["nextcloud"]="applications/nextcloud"
     ["rocketchat"]="applications/rocketchat"
     ["metabase"]="applications/metabase"
+    ["vscode-server"]="applications/vscode-server"
+    ["vikunja"]="applications/vikunja"
+    ["bookstack"]="applications/bookstack"
+    ["ghost"]="applications/ghost"
+    ["jupyterhub"]="applications/jupyterhub"
+    ["plausible"]="applications/plausible"
+    ["pocketbase"]="applications/pocketbase"
+    ["metabase"]="applications/metabase"
     ["code-server"]="applications/code-server"
     ["vikunja"]="applications/vikunja"
     ["bookstack"]="applications/bookstack"
@@ -89,7 +97,7 @@ declare -A CATEGORIES=(
     ["databases"]="postgres mysql mariadb redis mongodb influxdb neo4j couchdb sqlite cassandra"
     ["monitoring"]="elasticsearch prometheus grafana"
     ["storage"]="minio"
-    ["applications"]="baserow nocodb comfyui open-webui litellm n8n twenty wordpress nca-toolkit openbb mixpost nextcloud rocketchat metabase code-server vikunja bookstack ghost jupyterhub plausible pocketbase"
+    ["applications"]="baserow nocodb comfyui open-webui litellm n8n twenty wordpress nca-toolkit openbb mixpost nextcloud rocketchat metabase vscode-server vikunja bookstack ghost jupyterhub plausible pocketbase"
     ["utilities"]="backup phpmyadmin flaresolverr"
 )
 
@@ -231,19 +239,19 @@ run_compose_command() {
 
     case "$command" in
         "up")
-            $COMPOSE_CMD up -d 2>/dev/null
+            $COMPOSE_CMD up -d
             ;;
         "down")
-            $COMPOSE_CMD down 2>/dev/null
+            $COMPOSE_CMD down
             ;;
         "restart")
-            $COMPOSE_CMD restart 2>/dev/null
+            $COMPOSE_CMD restart
             ;;
         "pull")
-            $COMPOSE_CMD pull 2>/dev/null
+            $COMPOSE_CMD pull
             ;;
         "build")
-            $COMPOSE_CMD build 2>/dev/null
+            $COMPOSE_CMD build
             ;;
         "logs")
             $COMPOSE_CMD logs -f --tail=100
@@ -252,7 +260,7 @@ run_compose_command() {
             $COMPOSE_CMD ps
             ;;
         *)
-            $COMPOSE_CMD "$command" 2>/dev/null
+            $COMPOSE_CMD "$command"
             ;;
     esac
 

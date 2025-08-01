@@ -1,6 +1,6 @@
 services:
   baserow:
-    container_name: baserow
+    container_name: baserow-container
     image: baserow/baserow:1.33.4
     environment:
       BASEROW_PUBLIC_URL: 'http://baserow.localhost'

@@ -2,8 +2,8 @@
 
 services:
   comfyui:
+    container_name: comfyui-container
     init: true
-    container_name: comfyui-nvidia
     image: "yanwk/comfyui-boot:cu121"
     # Remove direct port mapping - access through Traefik
     # ports:

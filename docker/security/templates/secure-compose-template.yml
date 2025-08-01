@@ -1,0 +1,78 @@
+# Secure Docker Compose Template
+# Use this template as a base for secure service configurations
+
+version: '3.8'
+
+services:
+  example-service:
+    image: example:latest
+    container_name: example-secure-container
+    restart: unless-stopped
+    
+    # Security configurations
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:docker-default
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    
+    # User configuration (non-root)
+    user: "1000:1000"
+    
+    # Read-only root filesystem
+    read_only: true
+    
+    # Temporary filesystem for writable areas
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /var/tmp:noexec,nosuid,size=50m
+    
+    # Capability dropping
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    
+    # Network configuration
+    networks:
+      - secure-network
+    
+    # Environment variables (use secrets for sensitive data)
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  secure-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "false"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16

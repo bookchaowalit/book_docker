@@ -1,5 +1,6 @@
 services:
   consul:
+    container_name: consul-container
     image: consul:1.16
     restart: unless-stopped
     command: agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0

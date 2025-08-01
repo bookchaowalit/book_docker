@@ -1,6 +1,6 @@
 services:
   openwebui:
-    container_name: open-webui
+    container_name: open-web-ui-container
     image: ghcr.io/open-webui/open-webui:main
     # Remove direct port mapping - access through Traefik
     # ports:
@@ -11,10 +11,13 @@ services:
       - "traefik.http.routers.openwebui.rule=Host(`openwebui.localhost`)"
       - "traefik.http.routers.openwebui.entrypoints=web"
       - "traefik.http.services.openwebui.loadbalancer.server.port=8080"
+
     volumes:
       - open-web-ui:/app/backend/data
+
     networks:
       - shared-networks
+
     env_file:
       - .env
 

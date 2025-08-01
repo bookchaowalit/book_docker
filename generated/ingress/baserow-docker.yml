@@ -1,0 +1,31 @@
+# Generated Docker Compose configuration for baserow
+# Generated on Fri Aug  1 01:41:59 PM +07 2025
+
+version: '3.8'
+
+services:
+  baserow:
+    container_name: baserow-container
+    image: baserow:latest
+    restart: unless-stopped
+    
+    networks:
+      - traefik-network
+    
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.baserow.rule=Host(`baserow.example.com`)"
+      - "traefik.http.routers.baserow.entrypoints=websecure"
+      - "traefik.http.routers.baserow.tls.certresolver=letsencrypt"
+      - "traefik.http.services.baserow.loadbalancer.server.port=80"
+      - "traefik.http.routers.baserow.middlewares=security-headers,rate-limit"
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  traefik-network:
+    external: true

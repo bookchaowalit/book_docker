@@ -1,9 +1,11 @@
 services:
   gitlab:
+    container_name: gitlab-container
     image: gitlab/gitlab-ce:16.7.0-ce.0
     restart: unless-stopped
     hostname: gitlab.localhost
     environment:
+
       GITLAB_OMNIBUS_CONFIG: |
         external_url 'http://gitlab.localhost'
         gitlab_rails['gitlab_shell_ssh_port'] = 2222
@@ -21,10 +23,12 @@ services:
         gitlab_pages['enable'] = true
     ports:
       - "2222:22"
+
     volumes:
       - gitlab_config:/etc/gitlab
       - gitlab_logs:/var/log/gitlab
       - gitlab_data:/var/opt/gitlab
+
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.gitlab.rule=Host(`gitlab.localhost`)"
@@ -34,10 +38,13 @@ services:
       - "traefik.http.routers.registry.rule=Host(`registry.localhost`)"
       - "traefik.http.routers.registry.entrypoints=web"
       - "traefik.http.services.registry.loadbalancer.server.port=5000"
+
     networks:
       - shared-networks
+
     shm_size: '256m'
     healthcheck:
+
       test: [ "CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--max-time", "10" ]
       interval: 60s
       timeout: 30s

@@ -1,0 +1,31 @@
+# Generated Docker Compose configuration for testapp
+# Generated on Fri Aug  1 02:47:30 PM +07 2025
+
+version: '3.8'
+
+services:
+  testapp:
+    container_name: testapp-container
+    image: testapp:latest
+    restart: unless-stopped
+    
+    networks:
+      - traefik-network
+    
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.testapp.rule=Host(`testapp.example.com`)"
+      - "traefik.http.routers.testapp.entrypoints=websecure"
+      - "traefik.http.routers.testapp.tls.certresolver=letsencrypt"
+      - "traefik.http.services.testapp.loadbalancer.server.port=8080"
+      - "traefik.http.routers.testapp.middlewares=security-headers,rate-limit"
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  traefik-network:
+    external: true

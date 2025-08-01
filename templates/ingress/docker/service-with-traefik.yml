@@ -1,0 +1,48 @@
+# Service Template with Traefik Integration
+# Use this template for services behind Traefik proxy
+
+version: '3.8'
+
+services:
+  example-service:
+    container_name: example-service
+    image: example:latest
+    restart: unless-stopped
+    
+    networks:
+      - traefik-network
+      - backend-network
+    
+    labels:
+      # Enable Traefik
+      - "traefik.enable=true"
+      
+      # HTTP Router
+      - "traefik.http.routers.example.rule=Host(`example.yourdomain.com`)"
+      - "traefik.http.routers.example.entrypoints=websecure"
+      - "traefik.http.routers.example.tls.certresolver=letsencrypt"
+      
+      # Service
+      - "traefik.http.services.example.loadbalancer.server.port=8080"
+      
+      # Middleware
+      - "traefik.http.routers.example.middlewares=security-headers,rate-limit"
+      - "traefik.http.middlewares.security-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.security-headers.headers.customrequestheaders.X-Forwarded-For="
+      - "traefik.http.middlewares.rate-limit.ratelimit.burst=100"
+      - "traefik.http.middlewares.rate-limit.ratelimit.average=50"
+    
+    environment:
+      - NODE_ENV=production
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  traefik-network:
+    external: true
+  backend-network:
+    external: true

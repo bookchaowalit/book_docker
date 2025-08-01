@@ -1,7 +1,8 @@
 services:
   elasticsearch:
+    container_name: elasticsearch-logstash-kibana-container
     image: elasticsearch:7.16.1
-    container_name: es
+
     environment:
       discovery.type: single-node
       ES_JAVA_OPTS: "-Xms512m -Xmx512m"
@@ -16,8 +17,9 @@ services:
     networks:
       - elastic
   logstash:
+
     image: logstash:7.16.1
-    container_name: log
+
     environment:
       discovery.seed_hosts: logstash
       LS_JAVA_OPTS: "-Xms512m -Xmx512m"
@@ -35,8 +37,9 @@ services:
       - elastic
     command: logstash -f /usr/share/logstash/pipeline/logstash-nginx.config
   kibana:
+
     image: kibana:7.16.1
-    container_name: kib
+
     # Remove direct port mapping - access through Traefik
     # ports:
     #   - "5601:5601"

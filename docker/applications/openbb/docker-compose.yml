@@ -1,6 +1,8 @@
 services:
   openbb-platform:
+    container_name: openbb-container
     build:
+
       context: .
       dockerfile: Dockerfile
     image: openbb-platform:latest
@@ -12,13 +14,16 @@ services:
       - "traefik.http.routers.openbb.rule=Host(`openbb.localhost`)"
       - "traefik.http.routers.openbb.entrypoints=web"
       - "traefik.http.services.openbb.loadbalancer.server.port=6900"
+
     volumes:
       - ~/.openbb_platform:/root/.openbb_platform
+
     stdin_open: true # equivalent to -it
     tty: true # equivalent to -it
     restart: unless-stopped
     networks:
       - shared-networks
+
     entrypoint: [ "openbb-api", "--host", "0.0.0.0", "--login" ]
 
 networks:

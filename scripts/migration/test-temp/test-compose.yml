@@ -1,0 +1,21 @@
+services:
+  test-app:
+    container_name: test-app-container
+    image: nginx:latest
+    ports:
+      - "8080:80"
+    environment:
+      - ENV_VAR1=value1
+      - ENV_VAR2=value2
+    volumes:
+      - ./data:/usr/share/nginx/html
+    restart: unless-stopped
+    networks:
+      - shared-networks
+
+networks:
+  shared-networks:
+    external: true
+
+volumes:
+  test-data:

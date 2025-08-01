@@ -1,5 +1,6 @@
 services:
   traefik:
+    container_name: mixpost-container
     image: "traefik"
     restart: unless-stopped
     command:
@@ -21,6 +22,7 @@ services:
       - traefik_data:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock:ro
   mixpost:
+
     image: inovector/mixpost:latest
     env_file:
       - ../.env
@@ -38,7 +40,7 @@ services:
       - traefik.http.middlewares.mixpost.headers.SSLHost=`${APP_DOMAIN}`
       - traefik.http.middlewares.mixpost.headers.STSIncludeSubdomains=true
       - traefik.http.middlewares.mixpost.headers.STSPreload=true
-      - traefik.http.routers.mixpost.middlewares=mixpost@docker
+      - traefik.http.routers.mixpost.middlewares=mixpost@dockerr
     volumes:
       - storage:/var/www/html/storage/app
       - logs:/var/www/html/storage/logs
@@ -47,6 +49,7 @@ services:
       - redis
     restart: unless-stopped
   mysql:
+
     image: 'mysql/mysql-server:8.0'
     env_file:
       - ../.env
@@ -79,3 +82,12 @@ volumes:
     driver: local
   logs:
     driver: local
+
+# Added by centralization script
+networks:
+  shared-networks:
+    external: true
+  book-shared-network:
+    external: true
+  shared-net:
+    external: true
